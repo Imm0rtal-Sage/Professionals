@@ -1,0 +1,59 @@
+---
+- name: Setup monitoring and alerting with Prometheus and Alertmanager
+  hosts: all
+  become: yes
+
+  tasks:
+  # Установка Docker
+  - name: Install Docker
+    package:
+      name: docker-ce
+      state: present
+      update_cache: true
+
+  # Запуск службы Docker
+  - name: Start and enable Docker service
+    service:
+      name: docker
+      state: started
+      enabled: yes
+
+  # Создание сети Docker для Prometheus и Alertmanager
+  - name: Create a Docker network for Prometheus and Alertmanager
+    docker_network:
+      name: prometheus-network
+
+  # Настройка контейнера Prometheus
+  - name: Run Prometheus container
+    docker_container:
+      name: prometheus
+      image: prom/prometheus
+      state: started
+      restart_policy: always
+      published_ports:
+        - 9090:9090
+      networks:
+        - name: prometheus-network
+
+  # Настройка контейнера Alertmanager
+  - name: Run Alertmanager container
+    docker_container:
+      name: alertmanager
+      image: prom/alertmanager
+      state: started
+      restart_policy: always
+      published_ports:
+        - 9093:9093
+      networks:
+        - name: prometheus-network
+
+  handlers:
+  - name: Restart Prometheus
+    docker_container:
+      name: prometheus
+      state: restarted
+
+  - name: Restart Alertmanager
+    docker_container:
+      name: alertmanager
+      state: restarted
