@@ -3,19 +3,35 @@
   hosts: ALT:REDOS
   become: true
   tasks:
+    - name: Update ALT
+      apt:
+        update_cache: true
+        state: latest
+      when: ansible_os_family == "Astra Linux (Orel)"
 
-
-
+    - name: Update REDOS
+      yum:
+        update_cache: true
+        state: latest
+      when: ansible_os_family == "RedHat"
+      
     # Установка пакетов для RedHat-подобных систем
-    - name: Установить пакеты для RedHat
+    - name: Установить пакеты для ALT
       package:
         name: "{{ item }}"
         state: present
       loop:
-      - *
       - prometheus
       - prometheus-node_exporter
       - prometheus-alertmanager
+      when: ansible_os_family == "Astra Linux (Orel)"
+
+
+    - name: Установить пакеты для REDOS
+      package:
+        name: prometheus-node_exporter
+        state: present
+      when: ansible_os_family == "REDOS"
       
   
     # Настройка автозапуска и запуск node_exporter
