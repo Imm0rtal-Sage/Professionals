@@ -1,0 +1,49 @@
+---
+- name: Установить и настроить Prometheus и node_exporter
+  hosts: prometheus
+  become: true
+  vars:
+    prometheus_packages:
+      - prometheus
+      - prometheus-node-exporter
+      - prometheus-alertmanager
+
+  tasks:
+    # Установка пакетов для RedHat-подобных систем
+    - name: Установить пакеты для RedHat
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ prometheus_packages }}"
+      when: ansible_os_family == "RedHat"
+
+    # Установка пакетов для Debian-подобных систем
+    - name: Установить пакеты для Debian
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ prometheus_packages }}"
+      when: ansible_os_family == "Debian"
+
+    # Проверка доступности node_exporter через HTTP
+    - name: Проверить доступность node_exporter через HTTP
+      uri:
+        url: http://localhost:9100/metrics
+        return_content: no
+      register: node_exporter_http_check
+      failed_when: node_exporter_http_check.status != 200
+      changed_when: false
+
+    # Настройка автозапуска и запуск node_exporter
+    - name: Включить автозапуск и запустить node_exporter
+     service:
+        name: node_exporter
+        enabled: true
+        state: started
+
+    # Перезапуск службы Prometheus
+    - name: Перезапустить службу Prometheus
+      service:
+        name: prometheus
+        state: restarted
+        enabled: yes
